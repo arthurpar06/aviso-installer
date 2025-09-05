@@ -10,8 +10,12 @@
 			<FilePicker />
 		</section>
 	</main>
+
+	<Toaster />
 </template>
 
 <script setup lang="ts">
 import FilePicker from './components/FilePicker.vue'
+import { Toaster } from '@/components/ui/sonner'
+import 'vue-sonner/style.css' // vue-sonner v2 requires this import
 </script>

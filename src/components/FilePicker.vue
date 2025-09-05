@@ -25,6 +25,7 @@ import { ref } from 'vue'
 import { open } from '@tauri-apps/plugin-dialog'
 import Button from './ui/button/Button.vue'
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'vue-sonner'
 
 const lfxxPath = ref<string | null>(null)
 const avisoPath = ref<string | null>(null)
@@ -44,9 +45,12 @@ async function submitForm() {
       lfxxPath: lfxxPath.value,
       avisoPath: avisoPath.value
     })
-    alert('Install successful!')
+    
+    toast.success('AVISO installed successfully!', {
+      description: 'You can now use the modified LFXX file.',
+    });
   } catch (e) {
-    alert('Install failed: ' + e)
+    toast.error('Install failed: ' + e);
   }
 }
 </script>
