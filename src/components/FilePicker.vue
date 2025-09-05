@@ -4,14 +4,14 @@
       <label class="block text-sm font-medium mb-1">Pick LFXX.sct</label>
       <div class="flex items-center gap-2">
         <Button type="button" @click="pickFile('lfxx')">Choose File</Button>
-        <span class="text-xs text-gray-600">{{ lfxxPath || 'No file selected' }}</span>
+        <span class="text-xs text-gray-600 dark:text-gray-300">{{ lfxxPath || 'No file selected' }}</span>
       </div>
     </div>
     <div>
       <label class="block text-sm font-medium mb-1">Pick AVISO.sct</label>
       <div class="flex items-center gap-2">
         <Button type="button" @click="pickFile('aviso')">Choose File</Button>
-        <span class="text-xs text-gray-600">{{ avisoPath || 'No file selected' }}</span>
+        <span class="text-xs text-gray-600 dark:text-gray-300">{{ avisoPath || 'No file selected' }}</span>
       </div>
     </div>
     <div>
