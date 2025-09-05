@@ -2,7 +2,7 @@
 	<div class="flex min-h-screen items-center justify-center bg-background">
 		<Card class="w-full max-w-lg">
 			<CardHeader>
-				<CardTitle class="text-center text-3xl">Aviso Installer</CardTitle>
+				<CardTitle class="text-center text-3xl">EuroScope Aviso Installer by Lun'Air</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<p class="text-muted-foreground text-justify mb-4 text-sm">
