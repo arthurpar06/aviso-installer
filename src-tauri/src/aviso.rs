@@ -1,13 +1,29 @@
-use std::fs;
 use std::collections::{HashMap, HashSet};
+use std::fs;
 
 pub fn install_aviso(lfxx_path: &str, aviso_path: &str) -> Result<(), String> {
     // Read both files as bytes, convert to String using from_utf8_lossy
     let lfxx_bytes = fs::read(lfxx_path).map_err(|e| format!("Failed to read LFXX.sct: {}", e))?;
-    let aviso_bytes = fs::read(aviso_path).map_err(|e| format!("Failed to read AVISO.sct: {}", e))?;
+    let aviso_bytes =
+        fs::read(aviso_path).map_err(|e| format!("Failed to read AVISO.sct: {}", e))?;
     let lfxx_content = String::from_utf8_lossy(&lfxx_bytes);
     let aviso_content = String::from_utf8_lossy(&aviso_bytes);
 
+    install_aviso_impl(lfxx_path, &lfxx_content, &aviso_content)
+}
+
+pub fn install_aviso_content(lfxx_path: &str, aviso_content: &str) -> Result<(), String> {
+    let lfxx_bytes = fs::read(lfxx_path).map_err(|e| format!("Failed to read LFXX.sct: {}", e))?;
+    let lfxx_content = String::from_utf8_lossy(&lfxx_bytes);
+
+    install_aviso_impl(lfxx_path, &lfxx_content, aviso_content)
+}
+
+fn install_aviso_impl(
+    lfxx_path: &str,
+    lfxx_content: &str,
+    aviso_content: &str,
+) -> Result<(), String> {
     // Helper to parse groups into a HashMap
     fn parse_groups(s: &str) -> HashMap<String, Vec<String>> {
         let mut groups = HashMap::new();
@@ -17,7 +33,10 @@ pub fn install_aviso(lfxx_path: &str, aviso_path: &str) -> Result<(), String> {
                 current_group = name.to_string();
                 groups.entry(current_group.clone()).or_insert_with(Vec::new);
             } else if !current_group.is_empty() {
-                groups.entry(current_group.clone()).or_insert_with(Vec::new).push(line.to_string());
+                groups
+                    .entry(current_group.clone())
+                    .or_insert_with(Vec::new)
+                    .push(line.to_string());
             }
         }
         groups
@@ -33,9 +52,14 @@ pub fn install_aviso(lfxx_path: &str, aviso_path: &str) -> Result<(), String> {
             if !section_order.contains(&current_group) {
                 section_order.push(current_group.clone());
             }
-            lfxx_groups.entry(current_group.clone()).or_insert_with(Vec::new);
+            lfxx_groups
+                .entry(current_group.clone())
+                .or_insert_with(Vec::new);
         } else if !current_group.is_empty() {
-            lfxx_groups.entry(current_group.clone()).or_insert_with(Vec::new).push(line.to_string());
+            lfxx_groups
+                .entry(current_group.clone())
+                .or_insert_with(Vec::new)
+                .push(line.to_string());
         }
     }
 
@@ -79,6 +103,7 @@ pub fn install_aviso(lfxx_path: &str, aviso_path: &str) -> Result<(), String> {
     }
 
     // Save back to LFXX.sct as bytes (UTF-8)
-    fs::write(lfxx_path, merged.as_bytes()).map_err(|e| format!("Failed to write LFXX.sct: {}", e))?;
+    fs::write(lfxx_path, merged.as_bytes())
+        .map_err(|e| format!("Failed to write LFXX.sct: {}", e))?;
     Ok(())
 }
