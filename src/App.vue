@@ -1,10 +1,21 @@
 <template>
   <div class="flex min-h-screen items-center justify-center bg-background p-4">
     <Card class="w-full max-w-4xl">
-      <CardHeader>
-        <CardTitle class="text-center text-3xl"
+      <CardHeader class="flex flex-row items-center justify-between">
+        <CardTitle class="text-2xl font-bold"
           >EuroScope Aviso Installer by Lun'Air</CardTitle
         >
+        <Button
+          variant="outline"
+          size="sm"
+          as="a"
+          href="https://github.com/arthurpar06/lfxx-aviso"
+          target="_blank"
+          class="hidden md:flex"
+        >
+          <Github class="w-4 h-4 mr-2" />
+          Contribute
+        </Button>
       </CardHeader>
       <CardContent class="space-y-6">
         <p class="text-muted-foreground text-justify text-sm">
@@ -86,6 +97,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { open } from '@tauri-apps/plugin-dialog';
+import { Github } from 'lucide-vue-next';
 import FilePicker from '@/components/FilePicker.vue';
 import GitHubPicker from '@/components/GitHubPicker.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
