@@ -34,7 +34,7 @@ pub fn install_content(lfxx_path: &str, aviso_content: &str) -> Result<(), Strin
     }
 
     // Parse AVISO.sct
-    let aviso_groups = parse_groups(&aviso_content);
+    let aviso_groups = parse_groups(aviso_content);
 
     // Merge: append each aviso group to the corresponding lfxx group
     for (group, lines) in aviso_groups {
@@ -53,7 +53,7 @@ pub fn install_content(lfxx_path: &str, aviso_content: &str) -> Result<(), Strin
         merged.push_str(&format!("[{}]\n", group));
         if let Some(lines) = lfxx_groups.get(group) {
             for line in lines {
-                merged.push_str(&line);
+                merged.push_str(line);
                 merged.push('\n');
             }
         }
@@ -66,7 +66,7 @@ pub fn install_content(lfxx_path: &str, aviso_content: &str) -> Result<(), Strin
             merged.push_str(&format!("[{}]\n", group));
             if let Some(lines) = lfxx_groups.get(group) {
                 for line in lines {
-                    merged.push_str(&line);
+                    merged.push_str(line);
                     merged.push('\n');
                 }
             }

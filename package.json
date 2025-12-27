@@ -8,6 +8,8 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "lint:rust": "cd src-tauri && cargo clippy -- -D warnings",
+    "format:rust": "cd src-tauri && cargo fmt",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write"
