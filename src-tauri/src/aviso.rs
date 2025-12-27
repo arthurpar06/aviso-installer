@@ -122,8 +122,8 @@ pub fn is_aviso_installed(
     lfxx_path: &str,
     aviso_content: &str,
 ) -> Result<InstallationStatus, String> {
-    let lfxx_content = fs::read_to_string(lfxx_path)
-        .map_err(|e| format!("Failed to read LFXX file: {}", e))?;
+    let lfxx_bytes = fs::read(lfxx_path).map_err(|e| format!("Failed to read LFXX.sct: {}", e))?;
+    let lfxx_content = String::from_utf8_lossy(&lfxx_bytes);
 
     let aviso_geo_names = extract_geo_area_names(aviso_content);
     let aviso_region_names = extract_region_names(aviso_content);
