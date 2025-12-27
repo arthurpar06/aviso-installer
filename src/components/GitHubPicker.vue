@@ -3,7 +3,7 @@
     <div class="flex gap-2 items-center justify-between shrink-0 px-1">
       <div class="text-sm font-medium text-muted-foreground flex items-center gap-2">
         <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-        Source: https://github.com/arthurpar06/lfxx-aviso
+        Source: <a href="https://github.com/arthurpar06/lfxx-aviso" target="_blank" class="underline">https://github.com/arthurpar06/lfxx-aviso</a>
       </div>
       <Button @click="fetchFiles" :disabled="loading" variant="ghost" size="sm" class="h-8">
         <Loader2 v-if="loading" class="w-4 h-4 mr-2 animate-spin" />
