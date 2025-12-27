@@ -91,6 +91,7 @@
       </CardContent>
     </Card>
     <Toaster />
+    <Updater />
   </div>
 </template>
 
@@ -100,6 +101,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { Github } from 'lucide-vue-next';
 import FilePicker from '@/components/FilePicker.vue';
 import GitHubPicker from '@/components/GitHubPicker.vue';
+import Updater from '@/components/Updater.vue';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Toaster } from 'vue-sonner';
 import Button from '@/components/ui/button/Button.vue';

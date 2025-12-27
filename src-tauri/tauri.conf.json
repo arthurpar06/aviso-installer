@@ -23,6 +23,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",
@@ -31,5 +32,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },  
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDczQkNBMjEzNjc1QzRDQTUKUldTbFRGeG5FNks4YzI1U1hOaWlGM1hqd0F6alVPK1JkMDA5azI1bU5jR3VpKzhLMmtVclRDMUoK",
+      "endpoints": [
+        "https://github.com/arthurpar06/aviso-installer/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
