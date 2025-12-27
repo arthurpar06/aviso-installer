@@ -107,3 +107,95 @@ fn install_aviso_impl(
         .map_err(|e| format!("Failed to write LFXX.sct: {}", e))?;
     Ok(())
 }
+
+use serde::Serialize;
+
+#[derive(Serialize, Debug, PartialEq)]
+pub enum InstallationStatus {
+    #[serde(rename = "PARTIALLY_INSTALLED")]
+    PartiallyInstalled,
+    #[serde(rename = "NOT_INSTALLED")]
+    NotInstalled,
+}
+
+pub fn is_aviso_installed(
+    lfxx_path: &str,
+    aviso_content: &str,
+) -> Result<InstallationStatus, String> {
+    let lfxx_content = fs::read_to_string(lfxx_path)
+        .map_err(|e| format!("Failed to read LFXX file: {}", e))?;
+
+    let aviso_geo_names = extract_geo_area_names(aviso_content);
+    let aviso_region_names = extract_region_names(aviso_content);
+
+    for name in aviso_geo_names.iter().chain(aviso_region_names.iter()) {
+        if lfxx_content.contains(name) {
+            return Ok(InstallationStatus::PartiallyInstalled);
+        }
+    }
+
+    Ok(InstallationStatus::NotInstalled)
+}
+
+fn extract_geo_area_names(content: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut seen = HashSet::new();
+    let mut in_geo = false;
+
+    for line in content.lines() {
+        let line = line.trim_end();
+
+        if line.starts_with('[') {
+            in_geo = line == "[GEO]";
+            continue;
+        }
+
+        if in_geo && !line.trim().is_empty() {
+            // Find start of coordinates: N or S followed by a digit
+            let chars: Vec<char> = line.chars().collect();
+            let mut coord_index = None;
+
+            for i in 0..chars.len().saturating_sub(1) {
+                if (chars[i] == 'N' || chars[i] == 'S') && chars[i + 1].is_ascii_digit() {
+                    coord_index = Some(i);
+                    break;
+                }
+            }
+
+            if let Some(idx) = coord_index {
+                let name = line[..idx].trim().to_string();
+                if !name.is_empty() && seen.insert(name.clone()) {
+                    names.push(name);
+                }
+            }
+        }
+    }
+
+    names
+}
+
+fn extract_region_names(content: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut seen = HashSet::new();
+    let mut in_regions = false;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with('[') {
+            in_regions = trimmed == "[REGIONS]";
+            continue;
+        }
+
+        if in_regions && trimmed.starts_with("REGIONNAME") {
+            if let Some(name) = trimmed.strip_prefix("REGIONNAME") {
+                let name = name.trim().to_string();
+                if !name.is_empty() && seen.insert(name.clone()) {
+                    names.push(name);
+                }
+            }
+        }
+    }
+
+    names
+}

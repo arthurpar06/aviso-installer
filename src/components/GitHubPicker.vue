@@ -3,7 +3,7 @@
     <div class="flex gap-2 items-center justify-between shrink-0 px-1">
       <div class="text-sm font-medium text-muted-foreground flex items-center gap-2">
         <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-        Source: arthurpar06/lfxx-aviso
+        Source: https://github.com/arthurpar06/lfxx-aviso
       </div>
       <Button @click="fetchFiles" :disabled="loading" variant="ghost" size="sm" class="h-8">
         <Loader2 v-if="loading" class="w-4 h-4 mr-2 animate-spin" />
@@ -26,7 +26,7 @@
 
           <Button size="sm" variant="default"
             class="w-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md"
-            @click="install(file)" :disabled="installing === file.path">
+            @click="handleInstallClick(file)" :disabled="installing === file.path">
             <Loader2 v-if="installing === file.path" class="w-3 h-3 mr-2 animate-spin" />
             {{ installing === file.path ? 'Installing...' : 'Install' }}
           </Button>
@@ -36,6 +36,22 @@
     <div v-else-if="searched && !loading" class="text-center text-muted-foreground text-sm py-12 shrink-0">
       No .sct files found in this repository.
     </div>
+
+    <Dialog :open="showConfirm" @update:open="showConfirm = $event">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{{ confirmTitle }}</DialogTitle>
+          <DialogDescription>
+            {{ confirmMessage }}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button v-if="pendingFile" variant="outline" @click="showConfirm = false">Cancel</Button>
+          <Button v-if="pendingFile" @click="confirmInstall">Continue Anyway</Button>
+          <Button v-else @click="showConfirm = false">Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -45,6 +61,14 @@ import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'vue-sonner'
 import Button from './ui/button/Button.vue'
 import { Loader2, FileCode } from 'lucide-vue-next'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const props = defineProps<{
   lfxxPath: string | null
@@ -56,6 +80,13 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const searched = ref(false)
 const installing = ref<string | null>(null)
+
+// Confirmation Dialog State
+const showConfirm = ref(false)
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+const pendingFile = ref<any>(null)
+const pendingContent = ref<string>('')
 
 async function fetchFiles() {
   loading.value = true
@@ -76,7 +107,7 @@ async function fetchFiles() {
   }
 }
 
-async function install(file: any) {
+async function handleInstallClick(file: any) {
   if (!props.lfxxPath) {
     toast.error('Please select an LFXX file first')
     return
@@ -85,22 +116,59 @@ async function install(file: any) {
   installing.value = file.path
 
   try {
-    // Fetch raw content
+    // 1. Fetch content
     const response = await fetch(file.download_url)
     if (!response.ok) throw new Error('Failed to download file content')
     const content = await response.text()
 
-    // Install
-    await invoke('install_aviso_content', {
+    // 2. Check status
+    const status = await invoke<string>('check_aviso_installed', {
       lfxxPath: props.lfxxPath,
       avisoContent: content
     })
 
+
+    if (status === 'PARTIALLY_INSTALLED') {
+      confirmTitle.value = 'Already Installed (Partial or Full)'
+      confirmMessage.value = `The package '${file.name}' appears to be at least partially installed. To avoid conflicts or duplication, please start with a clean LFXX.sct file.`
+      pendingFile.value = null // Prevent install
+      showConfirm.value = true
+      installing.value = null
+    } else {
+      // Not installed, proceed directly
+      await performInstall(content, file)
+    }
+
+  } catch (e: any) {
+    console.error(e);
+    toast.error(`Error checking installation: ${e.message}`)
+    installing.value = null
+  }
+}
+
+async function confirmInstall() {
+  // This function is now only used if we ever re-introduce a confirmation flow,
+  // but for now, Installed/Partial states block execution.
+  showConfirm.value = false
+  if (pendingFile.value && pendingContent.value) {
+    installing.value = pendingFile.value.path
+    await performInstall(pendingContent.value, pendingFile.value)
+  }
+}
+
+async function performInstall(content: string, file: any) {
+  try {
+    await invoke('install_aviso_content', {
+      lfxxPath: props.lfxxPath,
+      avisoContent: content
+    })
     toast.success(`Installed ${file.name} successfully!`)
   } catch (e: any) {
     toast.error(`Failed to install: ${e.message}`)
   } finally {
     installing.value = null
+    pendingFile.value = null
+    pendingContent.value = ''
   }
 }
 
