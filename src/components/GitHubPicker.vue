@@ -13,9 +13,9 @@
 
     <div v-if="error" class="text-red-500 text-sm shrink-0 px-1">{{ error }}</div>
 
-    <div v-if="files.length > 0" class="flex-1 overflow-y-auto min-h-[400px] pr-2 custom-scrollbar">
+    <div v-if="displayedFiles.length > 0" class="flex-1 overflow-y-auto min-h-[400px] pr-2 custom-scrollbar">
       <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 pb-4">
-        <div v-for="file in files" :key="file.path"
+        <div v-for="file in displayedFiles" :key="file.path"
           class="group relative flex flex-col items-center justify-center p-6 rounded-xl bg-muted/30 hover:bg-muted/60 transition-all border border-transparent hover:border-primary/10 cursor-default">
           <div
             class="p-3 rounded-full bg-background shadow-sm mb-3 group-hover:scale-110 transition-transform duration-300">
@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'vue-sonner'
 import Button from './ui/button/Button.vue'
@@ -71,15 +71,21 @@ import {
 } from '@/components/ui/dialog'
 
 const props = defineProps<{
-  lfxxPath: string | null
+  lfxxPath: string | null,
+  lfxxEsePath: string | null
 }>()
 
 const repo = 'arthurpar06/lfxx-aviso'
-const files = ref<any[]>([])
+const allFiles = ref<any[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const searched = ref(false)
 const installing = ref<string | null>(null)
+
+// Computed for display
+const displayedFiles = computed(() => {
+  return allFiles.value.filter(f => f.name.endsWith('.sct'))
+})
 
 // Confirmation Dialog State
 const showConfirm = ref(false)
@@ -91,7 +97,7 @@ const pendingContent = ref<string>('')
 async function fetchFiles() {
   loading.value = true
   error.value = null
-  files.value = []
+  allFiles.value = []
   searched.value = true
 
   try {
@@ -99,7 +105,7 @@ async function fetchFiles() {
     if (!response.ok) throw new Error('Failed to fetch repository contents')
 
     const data = await response.json()
-    files.value = data.filter((item: any) => item.type === 'file' && item.name.endsWith('.sct'))
+    allFiles.value = data.filter((item: any) => item.type === 'file')
   } catch (e: any) {
     error.value = e.message
   } finally {
@@ -109,7 +115,7 @@ async function fetchFiles() {
 
 async function handleInstallClick(file: any) {
   if (!props.lfxxPath) {
-    toast.error('Please select an LFXX file first')
+    toast.error('Please select an LFXX.sct file first')
     return
   }
 
@@ -121,21 +127,19 @@ async function handleInstallClick(file: any) {
     if (!response.ok) throw new Error('Failed to download file content')
     const content = await response.text()
 
-    // 2. Check status
+    // 2. Check status (SCT only for now)
     const status = await invoke<string>('check_aviso_installed', {
       lfxxPath: props.lfxxPath,
       avisoContent: content
     })
 
-
     if (status === 'PARTIALLY_INSTALLED') {
       confirmTitle.value = 'Already Installed (Partial or Full)'
-      confirmMessage.value = `The package '${file.name}' appears to be at least partially installed. To avoid conflicts or duplication, please start with a clean LFXX.sct file.`
-      pendingFile.value = null // Prevent install
+      confirmMessage.value = `The package '${file.name}' appears to be at least partially installed. Please start with a clean LFXX.sct file.`
+      pendingFile.value = null
       showConfirm.value = true
       installing.value = null
     } else {
-      // Not installed, proceed directly
       await performInstall(content, file)
     }
 
@@ -147,23 +151,61 @@ async function handleInstallClick(file: any) {
 }
 
 async function confirmInstall() {
-  // This function is now only used if we ever re-introduce a confirmation flow,
-  // but for now, Installed/Partial states block execution.
   showConfirm.value = false
   if (pendingFile.value && pendingContent.value) {
-    installing.value = pendingFile.value.path
-    await performInstall(pendingContent.value, pendingFile.value)
+    // Unused currently as we block install
   }
 }
 
 async function performInstall(content: string, file: any) {
   try {
-    await invoke('install_aviso_content', {
+    // Determine if we should look for ESE
+    // Parse ICAO from filename: LFFF_AVISO.sct -> LFFF
+    let eseContent: string | null = null;
+
+    // Attempt to find matching ESE
+    // Assumption: Filename is starts with ICAO, or we check for exact name match (replacing .sct with .ese)
+    const exactEseName = file.name.replace('.sct', '.ese');
+
+    // Try to extract ICAO. Format: ICAO_...
+    const parts = file.name.split('_');
+    const icaoEseName = parts.length > 0 ? `${parts[0]}.ese` : null;
+
+    let targetEseFile = allFiles.value.find(f => f.name === exactEseName);
+    if (!targetEseFile && icaoEseName) {
+      targetEseFile = allFiles.value.find(f => f.name === icaoEseName);
+    }
+
+    if (targetEseFile) {
+      // Fetch ESE content
+      try {
+        const resp = await fetch(targetEseFile.download_url);
+        if (resp.ok) {
+          eseContent = await resp.text();
+        }
+      } catch (e) {
+        console.warn("Failed to fetch ESE content", e);
+      }
+    }
+
+    await invoke('install_aviso_package', {
       lfxxPath: props.lfxxPath,
-      avisoContent: content
+      lfxxEsePath: props.lfxxEsePath,
+      avisoContent: content,
+      eseContent: eseContent,
+      filename: file.name
     })
-    toast.success(`Installed ${file.name} successfully!`)
+
+    let successMsg = `Installed ${file.name} successfully!`;
+    if (eseContent && props.lfxxEsePath) {
+      successMsg += ` (and ${targetEseFile?.name})`;
+    } else if (targetEseFile && !props.lfxxEsePath) {
+      successMsg += ` (Note: ESE file found but no local LFXX.ese selected)`;
+    }
+
+    toast.success(successMsg)
   } catch (e: any) {
+    console.error(e)
     toast.error(`Failed to install: ${e.message}`)
   } finally {
     installing.value = null
